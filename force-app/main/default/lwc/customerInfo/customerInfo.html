@@ -1,0 +1,13 @@
+<template>
+    <lightning-card title="Customer Information">
+        <p style="padding: 10px;"> Home Country: {customer.homeCountry} </p>
+        <ul>
+            <li style="padding: 10px;">Subscriptions</li>
+            <template for:each={customer.products} for:item="subscription">
+                <li key={subscription.Name} style="padding: 10px;">
+                    <c-product-subscriprions product-detail={subscription} ></c-product-subscriprions>
+                </li>
+            </template>
+        </ul>
+    </lightning-card>
+</template>

@@ -1,0 +1,20 @@
+<template>
+    <lightning-input type="checkbox" label="Show Div" onchange={showDivHandler}>Check</lightning-input>
+    <template if:true={displayDiv}>
+        <div>Checkbox is checked. Hurray!!!</div>
+    </template>
+    <template if:false={displayDiv}>
+        <div>Checkbox is unchecked.</div>
+    </template>
+    <br/>
+    <h4>Below is generated using for:each directive.</h4>
+    <template for:each={cityList} for:item="city">
+       <p key={city}>{city}</p>
+    </template>
+    <br/>
+    <h4>Below is generated using iterator directive. It has special properties like .first, .last, .index</h4>
+    <template iterator:it={cityList}>
+        <p key={it.value}>{it.value}</p>
+     </template>
+    
+</template>
