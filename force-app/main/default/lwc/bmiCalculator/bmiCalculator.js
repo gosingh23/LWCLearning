@@ -22,11 +22,17 @@ export default class BmiCalculator extends LightningElement {
     onWeightChange(event){
         this.bmiData.dWeight = parseFloat(event.target.value);
         this.weight = parseFloat(event.target.value);
+        /**to avoid button click
+        this.calculateBMI();
+        */
     }
 
     onHeightChange(event){
         this.bmiData.dHeight = parseFloat(event.target.value);
         this.height = parseFloat(event.target.value);
+        /**to avoid button click
+        this.calculateBMI();
+        */
     }
 
     calculateBMI(){
