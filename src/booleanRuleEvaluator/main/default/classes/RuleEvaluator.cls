@@ -1,21 +1,56 @@
 public class RuleEvaluator {
-    public static String logicalExpression;
-    public static Map<String, Boolean> valueMap;
-    
+    static String logicalExpression;
+    static Map<String, Boolean> valueMap;
+
+
     /****
 	 * 
 	 */
-    public RuleEvaluator(String logicalExpression, Map<String, Boolean> valueMap) {        
-        evaluate(logicalExpression);
+    public RuleEvaluator(String booleanFormula, Map<String, Boolean> booleanValueByNameMap) {   
+        logicalExpression = booleanFormula;
+        valueMap = booleanValueByNameMap;
+    }
+
+    /****
+	 * 
+	 */
+    public EvaluationResult evaluate() {
+        EvaluationResult er = new EvaluationResult();
+        Expression result;
+        
+        try {
+            logicalExpression = logicalExpression.remove(' ').toUpperCase().trim();
+
+            if (String.isBlank(logicalExpression) || valueMap == null || !RuleEvaluator.checkStringFormat(logicalExpression)) {
+                er.isError = true;
+                er.result = null;
+                er.errorMessage = 'Evaluation formula or valueMap or both are invalid. \n Evaluation Formula: '+ logicalExpression + '\n valueMap: '+ valueMap;
+            } else {
+                result = new Evaluator().evaluate(logicalExpression, true, null);
+                system.debug('result: '+result);
+                system.debug('result: '+result.evaluate());
+
+                er.isError = false;
+                er.result = result.evaluate();
+
+            }
+        
+        } catch (Exception e) {
+            er.isError = true;
+            er.result = null;
+            er.errorMessage = e.getMessage();
+        }
+        system.debug('er: '+er);
+        return er;
     }
     
 	/****
 	 * 
 	 */
     static Boolean checkStringFormat(String formula) {
-        if(string.isBlank(formula)) return false; // TODO: Return 'EvaluationResult' type?
+        if(string.isBlank(formula)) return false;
         
-        formula = formula.toUpperCase().remove(' ').trim();
+        formula = formula.remove(' ').toUpperCase().trim();
 
         Integer bracesCount = 0;
         Boolean positiveBraceCount = false;
@@ -24,12 +59,12 @@ public class RuleEvaluator {
             String s = formula.substring(i-1,i);
             if (s == ')') {
                 bracesCount--;
-                if (bracesCount < 0) return false; // TODO: Return 'EvaluationResult' type?
+                if (bracesCount < 0) return false;
             } else if (s == '(') {
                 bracesCount++;
                 positiveBraceCount = true;
                 if (!(formula.substring(i-3,i-1) == 'OR'|| formula.substring(i-4,i-1) == 'NOT' || formula.substring(i-4,i-1) == 'AND')) {
-                    return false; // TODO: Return 'EvaluationResult' type?
+                    return false;
                 }
             }
         }
@@ -50,7 +85,7 @@ public class RuleEvaluator {
             }
         }
         
-        return 0; //TODO: returning 0 may lead into recursion if not handled 
+        return -1;
     }
 	
     /****
@@ -72,33 +107,32 @@ public class RuleEvaluator {
     /****
 	 * 
 	 */
-    public Expression evaluate(String formula) {
-        Expression result;
-        
-        if (RuleEvaluator.checkStringFormat(formula)) result = new Evaluator().evaluate(formula, true, null);
-        system.debug('result: '+result);
-        system.debug('result: '+result.evaluate());
-        return result;
-    }
-    
     public class EvaluationResult {
         Boolean isError;
         Boolean result;
         String errorMessage;
-        
+
+        public Boolean isError () {
+            return this.isError;
+        }
+
+        public Boolean getResult () {
+            return this.result;
+        }
+
+        public String getErrorMessage () {
+            return this.errorMessage;
+        }
     }
 
-    class Evaluator {
+
+    private class Evaluator extends ElementsUtility {
 
         /****
          * 
          */
         private Expression evaluate(String formula, Boolean isTopLevel, String prevExp) {
             system.debug('Formula: '+formula);
-            formula = formula.toUpperCase(); // TODO: move outside method ? 
-            formula = formula.trim();
-            formula = formula.remove(' ');
-            
             Expression expr;
             
             if (isTopLevel) {
@@ -107,9 +141,8 @@ public class RuleEvaluator {
                 } else if (formula.startsWith('OR')) {
                     expr = new Evaluator().evaluate(formula.substring(3,formula.length()-1), false, 'OR');
                 }
-                //expr.evaluate();
             } else {
-                List<String> elements = new ElementsUtility().splitElements(formula);
+                List<String> elements = splitElements(formula);
                 system.debug('Evaluating elements: '+elements);
 
                 if (prevExp == 'AND') {
@@ -127,13 +160,7 @@ public class RuleEvaluator {
                         expr.add(new Evaluator().evaluate(s.substring(3,s.length()-1), false, 'OR'));
                         system.debug('expr OR: '+expr);
                     } else {
-                        system.debug('expr before: '+expr);
                         for (String e : s.split(',')) {
-                            system.debug('this var: '+e);
-                            //system.debug(valueMap);
-                            system.debug('this Value: '+valueMap.get(e));
-                            //system.debug(new Variable(valueMap.get(e)));
-                        	//expr.add(new Variable(valueMap.get(e)));
                         	expr.add(new Variable(e).set(e,valueMap.get(e)));
                         }
                         system.debug('expr after: '+expr);
@@ -145,37 +172,29 @@ public class RuleEvaluator {
         }
     }
 
-    class ElementsUtility {
+    private virtual class ElementsUtility {
         List<String> elements = new List<String>();
 
         /****
          * 
          */
-        List<String> splitElements(String formula) {
+        private List<String> splitElements(String formula) {
             system.debug('String to check: '+formula);
             if (formula.startsWith('AND') || formula.startsWith('OR')) {
                 Integer endIndex = RuleEvaluator.findEndIndex(formula);
-                //system.debug('endIndex: '+endIndex);
-                //system.debug('formula.length(): '+formula.length());
                 String newElement;
-                if (endIndex < formula.length()-1) {
-                    newElement = formula.substring(0,endIndex+1);
-                    system.debug('newElement: '+newElement);
-                	elements.add(newElement);
-                    this.splitElements(formula.substring(endIndex+2));
-                } else {
-                    system.debug('newElement: '+formula);
-                    elements.add(formula);
-                }
-            } else {
-                String newElement = formula.substring(0,1); // TODO: support value after 9 .. 
+                newElement = formula.substring(0,endIndex+1);
                 system.debug('newElement: '+newElement);
                 elements.add(newElement);
-                //system.debug('newElement: '+newElement);
-                //system.debug('endString: '+formula.substring(1));
-                if (!String.isBlank(formula.substring(1))) this.splitElements(formula.substringAfter(','));
+                if (!String.isBlank(formula.substring(endIndex+1))) this.splitElements(formula.substring(endIndex+2));
+                
+            } else {
+                String newElement = formula.substringBefore(',');
+                system.debug('newElement: '+newElement);
+                elements.add(newElement);
+                if (!String.isBlank(formula.substringAfter(','))) this.splitElements(formula.substringAfter(','));
             }
-            //system.debug('Elements: '+elements);
+
             return elements;
         }
     }
