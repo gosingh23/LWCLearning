@@ -24,6 +24,7 @@ public class RuleEvaluator {
             if (String.isBlank(logicalExpression) || valueMap == null || !RuleEvaluator.checkStringFormat(logicalExpression)) {
                 er.isError = true;
                 er.result = null;
+                //er.errorCode = 10;
                 er.errorMessage = 'Evaluation formula or valueMap or both are invalid. \n Evaluation Formula: '+ logicalExpression + '\n valueMap: '+ valueMap;
             } else {
                 result = new Evaluator().evaluate(logicalExpression, true, null);
@@ -111,6 +112,7 @@ public class RuleEvaluator {
         Boolean isError;
         Boolean result;
         String errorMessage;
+        Integer errorCode;
 
         public Boolean isError () {
             return this.isError;
@@ -122,6 +124,10 @@ public class RuleEvaluator {
 
         public String getErrorMessage () {
             return this.errorMessage;
+        }
+
+        public String getErrorCode () {
+            return this.errorCode;
         }
     }
 
@@ -147,7 +153,7 @@ public class RuleEvaluator {
 
                 if (prevExp == 'AND') {
                     expr = new AndComposite();
-                } else if (prevExp == 'OR'){
+                } else if (prevExp == 'OR') {
                     expr = new OrComposite();
                 }
 
